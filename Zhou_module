@@ -1,0 +1,80 @@
+import numpy as np
+import matplotlib.pyplot as plt
+import cmath
+import time
+import functools
+from math import *
+
+#Berry curvature
+def Berry_curvature(k_x, k_y):
+    H = Hamiltonian(k_x - delta/2, k_y - delta/2)
+    eigenvalues, eigenvectors = np.linalg.eig(H)
+    vector = eigenvectors[:, np.argsort(np.real(eigenvalues))[band]]
+    
+    H = Hamiltonian(k_x + delta/2, k_y - delta/2)
+    eigenvalues, eigenvectors = np.linalg.eig(H)
+    vector_kx = eigenvectors[:, np.argsort(np.real(eigenvalues))[band]]
+    
+    H = Hamiltonian(k_x + delta/2, k_y + delta/2)
+    eigenvalues, eigenvectors = np.linalg.eig(H)
+    vector_kx_ky = eigenvectors[:, np.argsort(np.real(eigenvalues))[band]]
+    
+    H = Hamiltonian(k_x - delta/2, k_y + delta/2)
+    eigenvalues, eigenvectors = np.linalg.eig(H)
+    vector_ky = eigenvectors[:, np.argsort(np.real(eigenvalues))[band]]
+    
+    U_x = np.dot(vector.transpose().conj(), vector_kx)/abs(np.dot(vector.transpose().conj(), vector_kx))
+    U_xy = np.dot(vector_kx.transpose().conj(), vector_kx_ky)/abs(np.dot(vector_kx.transpose().conj(), vector_kx_ky))
+    U_yx = np.dot(vector_kx_ky.transpose().conj(), vector_ky)/abs(np.dot(vector_kx_ky.transpose().conj(), vector_ky))
+    U_y = np.dot(vector_ky.transpose().conj(), vector)/abs(np.dot(vector_ky.transpose().conj(), vector))
+    F = cmath.log(U_x*U_xy*U_yx*U_y)/(delta**2)
+    return F
+    
+#Chern number
+def Chern_number():
+    start_time = time.time()
+    chern_number = 0
+    for k_x in np.arange(-patch, patch, 2*pi/n):
+        for k_y in np.arange(4/3*pi - patch, 4/3*pi + patch, 2*pi/n):
+            F = Berry_curvature(k_x, k_y)            
+            chern_number = chern_number + F*(delta**2)
+            
+    chern_number = np.real(chern_number/(2*pi*1j))
+    end_time = time.time()
+    print('Chern number = ', round(chern_number, 6))
+    print('Time =', round(end_time-start_time, 2), 's')
+ 
+ #layer_projection
+def Layer_projection(layer, density):
+    H =  functools.partial(eig, 0)
+    #k_y = np.arange(-2*pi, 2*pi, 2*pi/n)
+    k_y = np.arange((4/3-0.05)*pi, (4/3+0.05)*pi, 0.1*pi/density)
+    fig = plt.figure(figsize=(15,15))
+    plt.plot(k_y, np.sort(list(map(H, k_y))), c = 'k')
+    
+    for j in range(2*N):
+        for i in range(np.shape(k_y)[0]):
+            kx = 0
+            ky = (4/3-0.05)*pi+0.1*pi/density*i
+            #ky = 4/3*pi
+            w, v = np.linalg.eig(Hamiltonian(kx, ky))
+            large = 150
+            plt.scatter(k_y[i], np.real(np.sort(w)[j]), s = large*(np.abs(v[:, np.argsort(w)[j]][2*layer])+np.abs(v[:, np.argsort(w)[j]][2*layer+1])), c = 'b')
+
+#site_projection
+def Site_projection(site, density):
+    H =  functools.partial(eig, 0)
+    #k_y = np.arange(-2*pi, 2*pi, 2*pi/n)
+    k_y = np.arange((4/3-0.05)*pi, (4/3+0.05)*pi, 0.1*pi/density)
+    fig = plt.figure(figsize=(15,15))
+    plt.plot(k_y, np.sort(list(map(H, k_y))), c = 'k')
+    
+    for j in range(2*N):
+        for i in range(np.shape(k_y)[0]):
+            kx = 0
+            ky = (4/3-0.05)*pi+0.1*pi/density*i
+            #ky = 4/3*pi
+            w, v = np.linalg.eig(Hamiltonian(kx, ky))
+            large = 150
+            plt.scatter(k_y[i], np.real(np.sort(w)[j]), s = large*np.abs(v[:, np.argsort(w)[j]][site]), c = 'b')            
+     
